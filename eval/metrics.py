@@ -12,6 +12,6 @@ def count_correct_anomalies(pred_, true_):
 def detection_metrics(pred_, true_):
     return {
         "detection_score": count_correct_anomalies(pred_, true_),
-        "precison": f"{precision_score(pred_, true_):.3f}",
-        "recall": f"{recall_score(pred_, true_):.3f}"
+        "precision_score": float(f"{precision_score(pred_, true_):.3f}"),
+        "recall_score": float(f"{recall_score(pred_, true_):.3f}")
     }

@@ -4,7 +4,7 @@ import pandas as pd
 
 from features.load import load_user_data
 from constants import *
-from commands import global_cmd_map_code
+from commands import global_cmd_map_code, global_cmds
 from features.segment import build_segment_features
 
 
@@ -12,7 +12,7 @@ class User:
     def __init__(self,
                  user_id: str,
                  user_data_path: os.PathLike,
-                 ground_truth_path: os.PathLike):
+                 ground_truth_path: pd.Series):
         '''
         :param user_id:
         :param user_data_path:
@@ -31,8 +31,8 @@ class User:
         self.cmd_set_not_in_train = self.cmd_set_test.difference(self.cmd_set_train)
 
         #   get anomaly ground truth
-        gt_df = pd.read_csv(ground_truth_path, index_col=0).T
-        self.user_anomaly_gt = gt_df.iloc[TRAIN_SEGMENT_COUNT:, :DEV_USERS_COUNT]
+
+        self.user_anomaly_gt = ground_truth_path
 
         # cmd map features
         self._train_raw_data["cmd_code"] = self._train_raw_data["cmd"].map(global_cmd_map_code).astype(int)
@@ -53,8 +53,26 @@ class User:
                 self._test_raw_data, self.cmd_set_not_in_train, i))
 
         #   build segments dataframes
-        self.segment_df_train = pd.DataFrame.from_records(train_segment_features_list)
-        self.segment_df_test = pd.DataFrame.from_records(test_segment_features_list)
+        self._segment_df_train = pd.DataFrame.from_records(train_segment_features_list)
+        self._segment_df_test = pd.DataFrame.from_records(test_segment_features_list)
+
+        # convert non-numeric columns to categorical
+        for categorical_feature in ["cmd_most_used", "first_cmd", "last_cmd"]:
+            self._segment_df_train[categorical_feature] = pd.Categorical(self._segment_df_train[categorical_feature],
+                                                                         categories=global_cmds)
+            self._segment_df_test[categorical_feature] = pd.Categorical(self._segment_df_test[categorical_feature],
+                                                                        categories=global_cmds)
+
+    @property
+    def segment_df_train(self):
+        return self._segment_df_train
+
+    @property
+    def segment_df_test(self):
+        return self._segment_df_test
+
+    def get_dummies_features(self):
+        pass
 
 
 if __name__ == '__main__':

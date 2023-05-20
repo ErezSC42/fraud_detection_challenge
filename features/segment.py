@@ -18,7 +18,7 @@ def build_segment_features(
         2.  X - cmd that has been used the least
         3.  X - count of cmd that has been used the most
         4.  V - len of longest sequence of same cmds
-        5.  X - has zip/compression cmds
+        5.  V - has zip/compression cmds
         6.  X - has encryption cmds
         7.  X - has networking cmds
         8.  V - count distinct of cmds
@@ -37,6 +37,8 @@ def build_segment_features(
     segment_features["cmd_most_used"] = next(iter(segment_cmd_value_counts))
     segment_features["first_cmd"] = segment_df["cmd"].iloc[0]
     segment_features["last_cmd"] = segment_df["cmd"].iloc[SEGMENT_LEN - 1]
+
+    # categorical features
     segment_features["unique_cmds"] = len(segment_df["cmd"].unique())
 
     # longest subsequence of same commands
@@ -44,15 +46,12 @@ def build_segment_features(
     segment_features["longest_same_cmd_sequence"] = (~s).cumsum()[
         s].value_counts().max()  # TODO - there is a bug here, getting 100s
 
-    segment_features["cmd_not_in_train_count"] = set_feature_intersection_count(segment_df, "cmd",
-                                                                                user_cmd_set_not_in_train)
-    segment_features["single_chars_cmd_count"] = set_feature_intersection_count(segment_df, "cmd",
-                                                                                single_chars_cmds)
-    segment_features["two_chars_cmds_count"] = set_feature_intersection_count(segment_df, "cmd", two_chars_cmds)
-    segment_features["three_chars_cmds_count"] = set_feature_intersection_count(segment_df, "cmd", three_chars_cmds)
-    segment_features["four_chars_cmds_count"] = set_feature_intersection_count(segment_df, "cmd", four_chars_cmds)
-    segment_features["ends_with_dot_cmds_count"] = set_feature_intersection_count(segment_df, "cmd", ends_with_dot_cmds)
-    segment_features["has_dot_in_middle"] = set_feature_intersection_count(segment_df, "cmd", has_dot_in_middle)
-    # command types features
+    #   command types features
+    get_features = lambda group: set_feature_intersection_count(segment_df, "cmd", group)
+
+    segment_features["cmds_not_in_train"] = get_features(user_cmd_set_not_in_train)
+    for feature_name, feature_cmd_list in cmd_features_groups.items():
+        segment_features[feature_name] = get_features(feature_cmd_list)
 
     return segment_features
+
