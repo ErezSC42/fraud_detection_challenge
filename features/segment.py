@@ -19,7 +19,7 @@ def build_segment_features(
         3.  X - count of cmd that has been used the most
         4.  V - len of longest sequence of same cmds
         5.  V - has zip/compression cmds
-        6.  X - has encryption cmds
+        6.  V - has encryption cmds
         7.  X - has networking cmds
         8.  V - count distinct of cmds
         9.  V - first cmd
@@ -37,8 +37,6 @@ def build_segment_features(
     segment_features["cmd_most_used"] = next(iter(segment_cmd_value_counts))
     segment_features["first_cmd"] = segment_df["cmd"].iloc[0]
     segment_features["last_cmd"] = segment_df["cmd"].iloc[SEGMENT_LEN - 1]
-
-    # categorical features
     segment_features["unique_cmds"] = len(segment_df["cmd"].unique())
 
     # longest subsequence of same commands
@@ -46,12 +44,18 @@ def build_segment_features(
     segment_features["longest_same_cmd_sequence"] = (~s).cumsum()[
         s].value_counts().max()  # TODO - there is a bug here, getting 100s
 
-    #   command types features
     get_features = lambda group: set_feature_intersection_count(segment_df, "cmd", group)
+    get_features_not_in_train = lambda group: set_feature_intersection_count(
+        segment_df[segment_df["cmd"].isin(user_cmd_set_not_in_train)], "cmd", group)
 
-    segment_features["cmds_not_in_train"] = get_features(user_cmd_set_not_in_train)
+    #   command types features
     for feature_name, feature_cmd_list in cmd_features_groups.items():
         segment_features[feature_name] = get_features(feature_cmd_list)
 
-    return segment_features
+    #   commands not in train
+    segment_features["cmds_not_in_train"] = get_features(user_cmd_set_not_in_train)
 
+    for feature_name, feature_cmd_list in cmd_features_groups.items():
+        segment_features[f"not_in_train_{feature_name}"] = get_features_not_in_train(feature_cmd_list)
+
+    return segment_features
