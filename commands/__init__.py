@@ -5,6 +5,10 @@ def _load_cmd_file(path):
 
 
 global_cmds = _load_cmd_file("commands/global_cmds.txt")
+
+
+global_cmd_map_code = {c: i for i, c in enumerate(global_cmds)}
+
 exe_cmds = _load_cmd_file("commands/exe_files.txt")
 
 starts_with_dotfile_cmds = _load_cmd_file("commands/starts_with_dotfile.txt")
