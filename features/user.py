@@ -1,11 +1,16 @@
 import os
-
+import pickle
+import numpy as np
 import pandas as pd
 
 from features.load import load_user_data
 from constants import *
 from commands import global_cmd_map_code, global_cmds
 from features.segment import build_segment_features
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+TFIDF_VECTORIZER_PATH = "tfidf_vectorizer.pkl"
 
 
 class User:
@@ -20,6 +25,9 @@ class User:
         '''
         self._user_id = user_id
         self._user_data_path = user_data_path
+
+        with open(TFIDF_VECTORIZER_PATH, "rb") as fp:
+            self.tfidf_vectorizer: TfidfVectorizer = pickle.load(fp)
 
         #   load user data
         self._train_raw_data, self._test_raw_data = load_user_data(self._user_id, self._user_data_path)
@@ -37,6 +45,23 @@ class User:
         # cmd map features
         self._train_raw_data["cmd_code"] = self._train_raw_data["cmd"].map(global_cmd_map_code).astype(int)
         self._test_raw_data["cmd_code"] = self._test_raw_data["cmd"].map(global_cmd_map_code).astype(int)
+        self.scaler = MinMaxScaler()
+
+    @property
+    def segment_df_train(self):
+        return self._segment_df_train
+
+    @property
+    def segment_df_test(self):
+        return self._segment_df_test
+
+    @segment_df_train.setter
+    def segment_df_train(self, other):
+        self._segment_df_train = other
+
+    @segment_df_test.setter
+    def segment_df_test(self, other):
+        self._segment_df_test = other
 
     def build_segment_features(self):
         train_segment_features_list = []
@@ -63,13 +88,39 @@ class User:
             self._segment_df_test[categorical_feature] = pd.Categorical(self._segment_df_test[categorical_feature],
                                                                         categories=global_cmds)
 
-    @property
-    def segment_df_train(self):
-        return self._segment_df_train
+        #   fit scaler
+        self.normalize_features()
+        self.get_tfidf_features()
 
-    @property
-    def segment_df_test(self):
-        return self._segment_df_test
+
+    def normalize_features(self):
+        numeric_columns = self._segment_df_train.select_dtypes(include=[np.number]).columns
+        self.scaler.fit(self._segment_df_train[numeric_columns])
+
+        self.normalized_features_train = self._segment_df_train.copy(deep=True)
+        self.normalized_features_test = self._segment_df_test.copy(deep=True)
+
+        self.normalized_features_train[numeric_columns] = self.scaler.transform(self._segment_df_train[numeric_columns])
+        self.normalized_features_test[numeric_columns] = self.scaler.transform(self._segment_df_test[numeric_columns])
+
+    def get_tfidf_features(self):
+        train_corpus = self._train_raw_data.groupby(["user", "segment_id"])["cmd"].transform(
+            lambda x: ' '.join(x)).drop_duplicates().reset_index(drop=True).tolist()
+        test_corpus = self._test_raw_data.groupby(["user", "segment_id"])["cmd"].transform(
+            lambda x: ' '.join(x)).drop_duplicates().reset_index(drop=True).tolist()
+
+        tfidf_features_train = pd.DataFrame(self.tfidf_vectorizer.transform(train_corpus).toarray())
+        tfidf_features_test = pd.DataFrame(self.tfidf_vectorizer.transform(test_corpus).toarray())
+
+        columns = [f"tfidf_{s}" for s in self.tfidf_vectorizer.get_feature_names_out().tolist()]
+        tfidf_features_train.columns = columns
+        tfidf_features_test.columns = columns
+        # add tfidf features to segments df
+        self.normalized_features_train = pd.concat([self.normalized_features_train, tfidf_features_train], axis=1)
+        self.normalized_features_test = pd.concat([self.normalized_features_test, tfidf_features_test], axis=1)
+
+
+
 
     def get_dummies_features(self):
         pass
