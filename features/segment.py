@@ -39,6 +39,10 @@ def build_segment_features(
     segment_features["last_cmd"] = segment_df["cmd"].iloc[SEGMENT_LEN - 1]
     segment_features["unique_cmds"] = len(segment_df["cmd"].unique())
 
+    segment_features["max_cmd_len"] = segment_df["cmd"].apply(lambda s: len(s)).max()
+    segment_features["min_cmd_len"] = segment_df["cmd"].apply(lambda s: len(s)).min()
+    segment_features["mean_cmd_length"] = segment_df["cmd"].apply(lambda s: len(s)).mean()
+
     # longest subsequence of same commands
     s = segment_df["cmd_code"].diff().astype(bool)
     segment_features["longest_same_cmd_sequence"] = (~s).cumsum()[

@@ -90,7 +90,7 @@ class User:
 
         #   fit scaler
         self.normalize_features()
-        self.get_tfidf_features()
+        # self.get_tfidf_features()
 
 
     def normalize_features(self):

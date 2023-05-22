@@ -7,9 +7,9 @@ from eval.metrics import detection_metrics
 class DetectionPipeline:
     def __init__(self):
         self.detector = LocalOutlierFactor(
-            n_neighbors=5,
+            n_neighbors=11,
             novelty=True,
-            leaf_size=5,
+            leaf_size=2,
             algorithm="kd_tree",
             p=1,
             # contamination=0.5
