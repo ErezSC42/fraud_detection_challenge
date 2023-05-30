@@ -33,6 +33,11 @@ def build_segment_features(
     segment_cmd_value_counts = segment_df["cmd"].value_counts().to_dict()
     segment_df["cmd_count"] = segment_df["cmd"].map(segment_cmd_value_counts)
 
+    # boolean command counter
+    # segment_cmd_set = set(segment_df["cmd"].tolist())
+    # for global_cmd in global_cmds:
+    #     segment_features[f"is_in_segment{global_cmd}"] = 1 if global_cmd in segment_cmd_set else 0
+
     # features
     segment_features["cmd_most_used"] = next(iter(segment_cmd_value_counts))
     segment_features["first_cmd"] = segment_df["cmd"].iloc[0]
@@ -51,6 +56,10 @@ def build_segment_features(
     get_features = lambda group: set_feature_intersection_count(segment_df, "cmd", group)
     get_features_not_in_train = lambda group: set_feature_intersection_count(
         segment_df[segment_df["cmd"].isin(user_cmd_set_not_in_train)], "cmd", group)
+
+
+    # does command appear boolean features
+
 
     #   command types features
     for feature_name, feature_cmd_list in cmd_features_groups.items():

@@ -1,5 +1,7 @@
 import pandas as pd
 from sklearn.neighbors import LocalOutlierFactor
+from sklearn.ensemble import IsolationForest
+from sklearn.svm import OneClassSVM
 from sklearn.decomposition import PCA
 from eval.metrics import detection_metrics
 
